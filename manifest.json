@@ -2,7 +2,8 @@
     "manifest_version": 3,
     "name": "Custom Text Replacer",
     "description": "Replace text on webpages according to user-defined rules.",
-    "version": "1.0",
+    "version": "1.1",
+    "author": "Sudo-Ivan",
     "permissions": ["activeTab", "storage"],
     "action": {
       "default_popup": "html/popup.html"
