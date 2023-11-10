@@ -1,0 +1,82 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+  }
+  
+  .popup-container {
+    width: 600px;
+    padding: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+  }
+  
+  .popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  
+  .popup-title {
+    font-size: 1.2em;
+    margin: 0;
+  }
+  
+  .popup-nav {
+    display: flex;
+  }
+  
+  .tab-btn {
+    background: none;
+    border: none;
+    padding: 5px 10px;
+    margin-left: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    color: #333;
+  }
+  
+  .tab-btn.active {
+    border-bottom: 2px solid #333;
+  }
+  
+  .content {
+    display: none;
+  }
+  
+  .content.active {
+    display: block;
+  }
+  
+  .replacements-list {
+    margin-bottom: 15px;
+  }
+  
+  .input-group {
+    display: flex;
+    margin-bottom: 10px;
+  }
+  
+  .input-field {
+    flex: 1;
+    padding: 5px;
+    margin-right: 5px;
+    border: 1px solid #ccc;
+  }
+  
+  .btn {
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .btn.add-btn {
+    flex-shrink: 0;
+  }
+  
+  .btn:hover {
+    background-color: #0056b3;
+  }

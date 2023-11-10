@@ -1,0 +1,23 @@
+{
+    "manifest_version": 3,
+    "name": "Custom Text Replacer",
+    "description": "Replace text on webpages according to user-defined rules.",
+    "version": "1.0",
+    "permissions": ["activeTab", "storage"],
+    "action": {
+      "default_popup": "html/popup.html"
+    },
+    "background": {
+      "service_worker": "js/background.js"
+    },
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["js/content.js"]
+      }
+    ],
+    "options_page": "html/settings.html",
+    "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline';"
+    }
+  }
