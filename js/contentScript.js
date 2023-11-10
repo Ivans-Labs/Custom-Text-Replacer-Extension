@@ -1,4 +1,4 @@
-// content.js
+// contentScript.js
 function replaceTextOnPage(replacements) {
   // Function to safely escape regular expression special characters
   function escapeRegExp(string) {
