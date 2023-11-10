@@ -1,4 +1,3 @@
-// popup.js
 document.addEventListener('DOMContentLoaded', () => {
   displaySavedReplacements();
   loadSettings();
@@ -13,7 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('saveSettings').addEventListener('click', () => {
       const isEnabled = document.getElementById('toggleReplacement').checked;
-      saveSettings({ isEnabled });
+      const isCaseSensitive = document.getElementById('caseSensitive').checked;
+      const matchWholeWord = document.getElementById('matchWholeWord').checked;
+      saveSettings({ isEnabled, isCaseSensitive, matchWholeWord });
   });
 
   document.getElementById('addButton').addEventListener('click', () => {
@@ -25,19 +26,22 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
       }
 
-      addReplacementPair(originalText, newText);
+      const safeOriginalText = escapeHtml(originalText);
+      const safeNewText = escapeHtml(newText);
+
+      addReplacementPair(safeOriginalText, safeNewText);
   });
 });
 
 function displaySavedReplacements() {
   const listElement = document.getElementById('replacements-list');
-  listElement.innerText = ''; // Clear the list using innerText for safety
+  listElement.innerHTML = ''; // Clear the list
 
   chrome.storage.sync.get({ replacements: [] }, function (data) {
       const replacements = data.replacements;
 
       if (replacements.length === 0) {
-          listElement.innerText = 'No replacements set.';
+          listElement.textContent = 'No replacements set.';
           return;
       }
 
@@ -47,19 +51,19 @@ function displaySavedReplacements() {
 
           const originalTextSpan = document.createElement('span');
           originalTextSpan.className = 'original-text';
-          originalTextSpan.innerText = replacement.originalText; // Use innerText
+          originalTextSpan.textContent = replacement.originalText;
 
           const arrowSpan = document.createElement('span');
           arrowSpan.className = 'replacement-arrow';
-          arrowSpan.innerText = '→'; // Use innerText
+          arrowSpan.textContent = '→';
 
           const newTextSpan = document.createElement('span');
           newTextSpan.className = 'new-text';
-          newTextSpan.innerText = replacement.newText; // Use innerText
+          newTextSpan.textContent = replacement.newText;
 
           const deleteButton = document.createElement('button');
           deleteButton.className = 'btn delete-btn';
-          deleteButton.innerText = 'Remove'; // Use innerText
+          deleteButton.textContent = 'Remove';
           deleteButton.dataset.index = index;
           deleteButton.addEventListener('click', function () {
               removeReplacementPair(index);
@@ -76,11 +80,6 @@ function displaySavedReplacements() {
 }
 
 function addReplacementPair(originalText, newText) {
-  // Data validation/sanitization should be performed here
-  // For example, escape special characters to prevent XSS
-  // originalText = escapeHtml(originalText);
-  // newText = escapeHtml(newText);
-
   chrome.storage.sync.get({ replacements: [] }, function (data) {
       const replacements = data.replacements;
       replacements.push({ originalText, newText });
@@ -95,14 +94,26 @@ function addReplacementPair(originalText, newText) {
 function removeReplacementPair(index) {
   chrome.storage.sync.get({ replacements: [] }, function (data) {
       const replacements = data.replacements;
-      replacements.splice(index, 1);
-      chrome.storage.sync.set({ replacements }, displaySavedReplacements);
+      if (index >= 0 && index < replacements.length) {
+          replacements.splice(index, 1);
+          chrome.storage.sync.set({ replacements }, displaySavedReplacements);
+      } else {
+          showError('Invalid index for removal.');
+      }
   });
 }
 
 function showError(message) {
-  // Implement a user-friendly error display, such as a notification area in the popup
-  console.error(message);
+  const errorDiv = document.getElementById('error');
+  if (errorDiv) {
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+      setTimeout(() => {
+          errorDiv.style.display = 'none';
+      }, 3000);
+  } else {
+      alert(message); // Fallback in case errorDiv is not found
+  }
 }
 
 function switchTab(tabName) {
@@ -125,20 +136,47 @@ function switchTab(tabName) {
 }
 
 function loadSettings() {
-  chrome.storage.sync.get({ isEnabled: true }, function (data) {
-      document.getElementById('toggleReplacement').checked = data.isEnabled;
+  chrome.storage.sync.get({
+    isEnabled: true,
+    isCaseSensitive: false,
+    matchWholeWord: false
+  }, function (data) {
+    document.getElementById('toggleReplacement').checked = data.isEnabled;
+    document.getElementById('caseSensitive').checked = data.isCaseSensitive;
+    document.getElementById('matchWholeWord').checked = data.matchWholeWord;
   });
 }
 
 function saveSettings(settings) {
   chrome.storage.sync.set(settings, function () {
-      console.log('Settings saved');
+      if (chrome.runtime.lastError) {
+          showError('Error saving settings: ' + chrome.runtime.lastError.message);
+      } else {
+          showStatus('Settings saved successfully.');
+      }
   });
 }
 
-// A simple function to escape HTML (if needed)
+function showStatus(message) {
+  const statusDiv = document.getElementById('status');
+  if (statusDiv) {
+      statusDiv.textContent = message;
+      statusDiv.style.display = 'block';
+      setTimeout(() => {
+          statusDiv.style.display = 'none';
+      }, 3000);
+  } else {
+      console.log(message); // Fallback in case statusDiv is not found
+  }
+}
+
 function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.appendChild(document.createTextNode(text));
-  return div.innerHTML;
+  const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, function(m) { return map[m]; });
 }
