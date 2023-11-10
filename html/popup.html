@@ -11,27 +11,37 @@
     <header class="popup-header">
       <h1 class="popup-title">Custom Text Replacer</h1>
       <nav class="popup-nav">
-        <button id="homeTab" class="tab-btn active">Home</button>
-        <button id="settingsTab" class="tab-btn">Settings</button>
+        <button id="homeTab" class="tab-btn active" aria-controls="homeContent" aria-selected="true">Home</button>
+        <button id="settingsTab" class="tab-btn" aria-controls="settingsContent" aria-selected="false">Settings</button>
       </nav>
     </header>
-    <div id="homeContent" class="content active">
+    <section id="homeContent" class="content active" role="tabpanel" aria-labelledby="homeTab">
       <div id="replacements-list" class="replacements-list"></div>
       <div class="input-group">
         <input type="text" id="originalTextPopup" placeholder="Original text" class="input-field">
         <input type="text" id="newTextPopup" placeholder="New text" class="input-field">
         <button id="addButton" class="btn add-btn">Add</button>
       </div>
-    </div>
-    <div id="settingsContent" class="content">
+    </section>
+    <section id="settingsContent" class="content" role="tabpanel" aria-labelledby="settingsTab" hidden>
       <div class="settings-item">
         <label for="toggleReplacement">Enable Text Replacement:</label>
         <input type="checkbox" id="toggleReplacement" checked>
       </div>
       <div class="settings-item">
+        <label for="caseSensitive">Case Sensitive Replacement:</label>
+        <input type="checkbox" id="caseSensitive">
+      </div>
+      <div class="settings-item">
+        <label for="matchWholeWord">Match Whole Words Only:</label>
+        <input type="checkbox" id="matchWholeWord">
+      </div>
+      <div class="settings-item">
         <button id="saveSettings" class="btn save-btn">Save Settings</button>
       </div>
-    </div>
+      <div id="status" class="status-message"></div>
+      <div id="error" class="error-message"></div>
+    </section>
   </div>
   <script src="../js/popup.js"></script>
 </body>
