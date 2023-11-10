@@ -4,7 +4,7 @@
     "description": "Replace text on webpages according to user-defined rules.",
     "version": "1.2",
     "author": "Sudo-Ivan",
-    "permissions": ["activeTab", "storage", "<all_urls>"],
+    "permissions": ["activeTab", "storage"],
     "action": {
       "default_popup": "html/popup.html"
     },
