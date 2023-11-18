@@ -1,137 +1,174 @@
-document.addEventListener('DOMContentLoaded', () => {
+const CLASS_ACTIVE = 'active';
+const CLASS_REPLACEMENT_ENTRY = 'replacement-entry';
+const CLASS_ORIGINAL_TEXT = 'original-text';
+const CLASS_REPLACEMENT_ARROW = 'replacement-arrow';
+const CLASS_NEW_TEXT = 'new-text';
+const CLASS_DELETE_BTN = 'btn delete-btn';
+const ID_HOME_TAB = 'homeTab';
+const ID_SETTINGS_TAB = 'settingsTab';
+const ID_HOME_CONTENT = 'homeContent';
+const ID_SETTINGS_CONTENT = 'settingsContent';
+const ID_TOGGLE_REPLACEMENT = 'toggleReplacement';
+const ID_CASE_SENSITIVE = 'caseSensitive';
+const ID_MATCH_WHOLE_WORD = 'matchWholeWord';
+const ID_ORIGINAL_TEXT_POPUP = 'originalTextPopup';
+const ID_NEW_TEXT_POPUP = 'newTextPopup';
+const ID_ERROR = 'error';
+const ID_STATUS = 'status';
+const ID_REPLACEMENTS_LIST = 'replacements-list';
+const MESSAGE_NO_REPLACEMENTS = 'No replacements set.';
+const MESSAGE_FIELDS_REQUIRED = 'Both fields are required.';
+const MESSAGE_INVALID_INDEX = 'Invalid index for removal.';
+const MESSAGE_ERROR_SAVING_SETTINGS = 'Error saving settings: ';
+const MESSAGE_SETTINGS_SAVED = 'Settings saved successfully.';
+const TIMEOUT_STATUS_MESSAGE = 3000;
+
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
+}
+
+function showTemporaryMessage(elementId, message, timeout = TIMEOUT_STATUS_MESSAGE) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.textContent = message;
+    element.style.display = 'block';
+    setTimeout(() => {
+      element.style.display = 'none';
+    }, timeout);
+  } else {
+    console.error(`Element with ID ${elementId} not found.`);
+  }
+}
+
+function initialize() {
   displaySavedReplacements();
   loadSettings();
 
-  document.getElementById('homeTab').addEventListener('click', () => {
-      switchTab('home');
+  document.getElementById(ID_HOME_TAB).addEventListener('click', () => {
+    switchTab('home');
   });
 
-  document.getElementById('settingsTab').addEventListener('click', () => {
-      switchTab('settings');
+  document.getElementById(ID_SETTINGS_TAB).addEventListener('click', () => {
+    switchTab('settings');
   });
 
-  document.getElementById('saveSettings').addEventListener('click', () => {
-      const isEnabled = document.getElementById('toggleReplacement').checked;
-      const isCaseSensitive = document.getElementById('caseSensitive').checked;
-      const matchWholeWord = document.getElementById('matchWholeWord').checked;
-      saveSettings({ isEnabled, isCaseSensitive, matchWholeWord });
-  });
+  document.getElementById('saveSettings').addEventListener('click', saveSettingsFromDOM);
 
-  document.getElementById('addButton').addEventListener('click', () => {
-      const originalText = document.getElementById('originalTextPopup').value.trim();
-      const newText = document.getElementById('newTextPopup').value.trim();
+  document.getElementById('addButton').addEventListener('click', addReplacementPairFromDOM);
+}
 
-      if (!originalText || !newText) {
-          showError('Both fields are required.');
-          return;
-      }
+function addReplacementPairFromDOM() {
+  const originalText = document.getElementById(ID_ORIGINAL_TEXT_POPUP).value.trim();
+  const newText = document.getElementById(ID_NEW_TEXT_POPUP).value.trim();
 
-      const safeOriginalText = escapeHtml(originalText);
-      const safeNewText = escapeHtml(newText);
+  if (!originalText || !newText) {
+    showTemporaryMessage(ID_ERROR, MESSAGE_FIELDS_REQUIRED);
+    return;
+  }
 
-      addReplacementPair(safeOriginalText, safeNewText);
-  });
-});
+  const safeOriginalText = escapeHtml(originalText);
+  const safeNewText = escapeHtml(newText);
 
-function displaySavedReplacements() {
-  const listElement = document.getElementById('replacements-list');
-  listElement.innerHTML = ''; // Clear the list
-
-  chrome.storage.sync.get({ replacements: [] }, function (data) {
-      const replacements = data.replacements;
-
-      if (replacements.length === 0) {
-          listElement.textContent = 'No replacements set.';
-          return;
-      }
-
-      replacements.forEach((replacement, index) => {
-          const entry = document.createElement('div');
-          entry.className = 'replacement-entry';
-
-          const originalTextSpan = document.createElement('span');
-          originalTextSpan.className = 'original-text';
-          originalTextSpan.textContent = replacement.originalText;
-
-          const arrowSpan = document.createElement('span');
-          arrowSpan.className = 'replacement-arrow';
-          arrowSpan.textContent = '→';
-
-          const newTextSpan = document.createElement('span');
-          newTextSpan.className = 'new-text';
-          newTextSpan.textContent = replacement.newText;
-
-          const deleteButton = document.createElement('button');
-          deleteButton.className = 'btn delete-btn';
-          deleteButton.textContent = 'Remove';
-          deleteButton.dataset.index = index;
-          deleteButton.addEventListener('click', function () {
-              removeReplacementPair(index);
-          });
-
-          entry.appendChild(originalTextSpan);
-          entry.appendChild(arrowSpan);
-          entry.appendChild(newTextSpan);
-          entry.appendChild(deleteButton);
-
-          listElement.appendChild(entry);
-      });
-  });
+  addReplacementPair(safeOriginalText, safeNewText);
 }
 
 function addReplacementPair(originalText, newText) {
   chrome.storage.sync.get({ replacements: [] }, function (data) {
-      const replacements = data.replacements;
-      replacements.push({ originalText, newText });
-      chrome.storage.sync.set({ replacements }, function () {
-          document.getElementById('originalTextPopup').value = '';
-          document.getElementById('newTextPopup').value = '';
-          displaySavedReplacements(); // Update the list
-      });
+    const replacements = data.replacements;
+    replacements.push({ originalText, newText });
+    chrome.storage.sync.set({ replacements }, function () {
+      if (chrome.runtime.lastError) {
+        showTemporaryMessage(ID_ERROR, chrome.runtime.lastError.message);
+      } else {
+        document.getElementById(ID_ORIGINAL_TEXT_POPUP).value = '';
+        document.getElementById(ID_NEW_TEXT_POPUP).value = '';
+        displaySavedReplacements();
+      }
+    });
   });
 }
 
 function removeReplacementPair(index) {
   chrome.storage.sync.get({ replacements: [] }, function (data) {
-      const replacements = data.replacements;
-      if (index >= 0 && index < replacements.length) {
-          replacements.splice(index, 1);
-          chrome.storage.sync.set({ replacements }, displaySavedReplacements);
-      } else {
-          showError('Invalid index for removal.');
-      }
+    const replacements = data.replacements;
+    if (index >= 0 && index < replacements.length) {
+      replacements.splice(index, 1);
+      chrome.storage.sync.set({ replacements }, displaySavedReplacements);
+    } else {
+      showTemporaryMessage(ID_ERROR, MESSAGE_INVALID_INDEX);
+    }
   });
 }
 
-function showError(message) {
-  const errorDiv = document.getElementById('error');
-  if (errorDiv) {
-      errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
-      setTimeout(() => {
-          errorDiv.style.display = 'none';
-      }, 3000);
-  } else {
-      alert(message); // Fallback in case errorDiv is not found
-  }
+function displaySavedReplacements() {
+  const listElement = document.getElementById(ID_REPLACEMENTS_LIST);
+  listElement.innerHTML = '';
+
+  chrome.storage.sync.get({ replacements: [] }, function (data) {
+    const replacements = data.replacements;
+
+    if (replacements.length === 0) {
+      listElement.textContent = MESSAGE_NO_REPLACEMENTS;
+      return;
+    }
+
+    replacements.forEach((replacement, index) => {
+      const entry = document.createElement('div');
+      entry.className = CLASS_REPLACEMENT_ENTRY;
+
+      const originalTextSpan = document.createElement('span');
+      originalTextSpan.className = CLASS_ORIGINAL_TEXT;
+      originalTextSpan.textContent = replacement.originalText;
+
+      const arrowSpan = document.createElement('span');
+      arrowSpan.className = CLASS_REPLACEMENT_ARROW;
+      arrowSpan.textContent = '→';
+
+      const newTextSpan = document.createElement('span');
+      newTextSpan.className = CLASS_NEW_TEXT;
+      newTextSpan.textContent = replacement.newText;
+
+      const deleteButton = document.createElement('button');
+      deleteButton.className = CLASS_DELETE_BTN;
+      deleteButton.textContent = 'Remove';
+      deleteButton.dataset.index = index;
+      deleteButton.addEventListener('click', function () {
+          removeReplacementPair(index);
+      });
+
+      entry.appendChild(originalTextSpan);
+      entry.appendChild(arrowSpan);
+      entry.appendChild(newTextSpan);
+      entry.appendChild(deleteButton);
+
+      listElement.appendChild(entry);
+    });
+  });
 }
 
 function switchTab(tabName) {
-  const homeContent = document.getElementById('homeContent');
-  const settingsContent = document.getElementById('settingsContent');
-  const homeTab = document.getElementById('homeTab');
-  const settingsTab = document.getElementById('settingsTab');
+  const homeContent = document.getElementById(ID_HOME_CONTENT);
+  const settingsContent = document.getElementById(ID_SETTINGS_CONTENT);
+  const homeTab = document.getElementById(ID_HOME_TAB);
+  const settingsTab = document.getElementById(ID_SETTINGS_TAB);
 
   if (tabName === 'home') {
-      homeContent.classList.add('active');
-      settingsContent.classList.remove('active');
-      homeTab.classList.add('active');
-      settingsTab.classList.remove('active');
+    homeContent.classList.add(CLASS_ACTIVE);
+    settingsContent.classList.remove(CLASS_ACTIVE);
+    homeTab.classList.add(CLASS_ACTIVE);
+    settingsTab.classList.remove(CLASS_ACTIVE);
   } else if (tabName === 'settings') {
-      homeContent.classList.remove('active');
-      settingsContent.classList.add('active');
-      homeTab.classList.remove('active');
-      settingsTab.classList.add('active');
+    homeContent.classList.remove(CLASS_ACTIVE);
+    settingsContent.classList.add(CLASS_ACTIVE);
+    homeTab.classList.remove(CLASS_ACTIVE);
+    settingsTab.classList.add(CLASS_ACTIVE);
   }
 }
 
@@ -141,42 +178,29 @@ function loadSettings() {
     isCaseSensitive: false,
     matchWholeWord: false
   }, function (data) {
-    document.getElementById('toggleReplacement').checked = data.isEnabled;
-    document.getElementById('caseSensitive').checked = data.isCaseSensitive;
-    document.getElementById('matchWholeWord').checked = data.matchWholeWord;
+    document.getElementById(ID_TOGGLE_REPLACEMENT).checked = data.isEnabled;
+    document.getElementById(ID_CASE_SENSITIVE).checked = data.isCaseSensitive;
+    document.getElementById(ID_MATCH_WHOLE_WORD).checked = data.matchWholeWord;
   });
+}
+
+function saveSettingsFromDOM() {
+  const settings = {
+    isEnabled: document.getElementById(ID_TOGGLE_REPLACEMENT).checked,
+    isCaseSensitive: document.getElementById(ID_CASE_SENSITIVE).checked,
+    matchWholeWord: document.getElementById(ID_MATCH_WHOLE_WORD).checked
+  };
+  saveSettings(settings);
 }
 
 function saveSettings(settings) {
   chrome.storage.sync.set(settings, function () {
-      if (chrome.runtime.lastError) {
-          showError('Error saving settings: ' + chrome.runtime.lastError.message);
-      } else {
-          showStatus('Settings saved successfully.');
-      }
+    if (chrome.runtime.lastError) {
+      showTemporaryMessage(ID_ERROR, MESSAGE_ERROR_SAVING_SETTINGS + chrome.runtime.lastError.message);
+    } else {
+      showTemporaryMessage(ID_STATUS, MESSAGE_SETTINGS_SAVED);
+    }
   });
 }
 
-function showStatus(message) {
-  const statusDiv = document.getElementById('status');
-  if (statusDiv) {
-      statusDiv.textContent = message;
-      statusDiv.style.display = 'block';
-      setTimeout(() => {
-          statusDiv.style.display = 'none';
-      }, 3000);
-  } else {
-      console.log(message); // Fallback in case statusDiv is not found
-  }
-}
-
-function escapeHtml(text) {
-  const map = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;'
-  };
-  return text.replace(/[&<>"']/g, function(m) { return map[m]; });
-}
+document.addEventListener('DOMContentLoaded', initialize);
